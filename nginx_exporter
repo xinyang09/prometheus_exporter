@@ -40,7 +40,7 @@ writing = Gauge('writing','writing',['instance'])
 # 已经处理完横在等候下一次请求指令的驻留连接
 waiting = Gauge('waiting','waiting',['instance'])
 
-def get_dir_num():
+def get_nginx_status():
   active.labels(instance=active).set(data_dict.get('active'))
   server.labels(instance=server).set(data_dict.get('server'))
   accepts.labels(instance=accepts).set(data_dict.get('accepts'))
@@ -55,5 +55,5 @@ if __name__ == "__main__":
  #不断传入数据
   while True:
     func(data)
-    get_dir_num()
+    get_nginx_status()
     time.sleep(10)
