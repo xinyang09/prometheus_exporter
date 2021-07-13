@@ -1,0 +1,59 @@
+#!/usr/bin/python3
+from prometheus_client import start_http_server,Gauge
+import os
+import time
+import requests
+import re
+res = requests.get(
+    url='http://192.168.26.52/nginx_status',
+    headers={
+        "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/87.0.4280.88 Safari/537.36 FS"
+    }
+)
+
+data = res.content.decode()
+
+data_dict = {'active': '', 'server': '', 'accepts': '', 'handled': '', 'reading': '', 'writing': '', 'waiting': ''}
+
+#print(data)
+
+def func(data):
+    msg = ''
+    for i in data.split('\n'):
+        msg += i
+    data_list = re.findall('\d{1,}', msg)
+    for index, item in enumerate(data_dict, 0):
+        data_dict[item] = data_list[index]
+
+#定义数据类型，metric，describe(描述)，标签
+# 统计Nginx正在处理的活动连接数
+active = Gauge('Active','count Active connections',['instance'])
+# Nginx启动到现在共处理的连接数
+server = Gauge('server','The number of connections',['instance'])
+# Nginx启动到现在共处理的握手数
+accepts = Gauge('accepts','Shake hands for',['instance'])
+# Nginx读取到客户端的Header信息数
+handled = Gauge('handled', 'handled', ['instance'])
+reading = Gauge('reading','reading',['instance'])
+# Nginx返回给客户端header信息数
+writing = Gauge('writing','writing',['instance'])
+# 已经处理完横在等候下一次请求指令的驻留连接
+waiting = Gauge('waiting','waiting',['instance'])
+
+def get_dir_num():
+  active.labels(instance=active).set(data_dict.get('active'))
+  server.labels(instance=server).set(data_dict.get('server'))
+  accepts.labels(instance=accepts).set(data_dict.get('accepts'))
+  handled.labels(instance=handled).set(data_dict.get('handled'))
+  reading.labels(instance=reading).set(data_dict.get('reading'))
+  writing.labels(instance=writing).set(data_dict.get('writing'))
+  waiting.labels(instance=waiting).set(data_dict.get('waiting'))
+
+if __name__ == "__main__":
+ #暴露端口
+  start_http_server(8000)
+ #不断传入数据
+  while True:
+    func(data)
+    get_dir_num()
+    time.sleep(10)
